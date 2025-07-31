@@ -1,0 +1,24 @@
+{
+  "botDefaults": {
+    "name": "Den Manager",
+    "avatar": "./defaultLogo.png",
+    "description": "Default bot configuration for Den Manager"
+  },
+  "presence": {
+    "status": "online",
+    "activity": {
+      "type": 3,
+      "name": "{serverCount} servers | {memberCount} members"
+    }
+  },
+  "colors": {
+    "success": "#00ff88",
+    "warning": "#ff9900",
+    "error": "#ff4444",
+    "info": "#0099ff"
+  },
+  "footer": {
+    "text": "Den Manager • Gaming Community",
+    "iconURL": "./footer.gif"
+  }
+} 

@@ -1,0 +1,173 @@
+{
+  "commands": [
+    {
+      "name": "setup",
+      "description": "Configure the Den Manager bot for your server",
+      "type": "slash",
+      "file": "setup.js",
+      "permissions": ["ADMINISTRATOR"]
+    },
+    {
+      "name": "test",
+      "description": "Send a test welcome message",
+      "type": "message",
+      "file": "test.js",
+      "permissions": ["ADMINISTRATOR"]
+    },
+    {
+      "name": "bg",
+      "description": "Set background image for welcome messages",
+      "type": "message",
+      "file": "bg.js",
+      "permissions": ["ADMINISTRATOR"]
+    },
+    {
+      "name": "avatar",
+      "description": "Change bot avatar (Owner only)",
+      "type": "message",
+      "file": "avatar.js",
+      "permissions": ["OWNER"]
+    },
+    {
+      "name": "name",
+      "description": "Change bot name (Owner only)",
+      "type": "message",
+      "file": "name.js",
+      "permissions": ["OWNER"]
+    },
+    {
+      "name": "guildreset",
+      "description": "Reset bot settings for this server",
+      "type": "message",
+      "file": "guildreset.js",
+      "permissions": ["OWNER"]
+    },
+    {
+      "name": "guildinfo",
+      "description": "Show current guild-specific bot settings",
+      "type": "message",
+      "file": "guildinfo.js",
+      "permissions": ["OWNER"]
+    },
+    {
+      "name": "reset",
+      "description": "Reset bot name and avatar to original",
+      "type": "slash",
+      "file": "resetConfig.js",
+      "permissions": ["OWNER"]
+    },
+    {
+      "name": "resetall",
+      "description": "Reset bot name and avatar globally",
+      "type": "slash",
+      "file": "resetAll.js",
+      "permissions": ["OWNER"]
+    },
+    {
+      "name": "updatetemplates",
+      "description": "Update guild data templates",
+      "type": "slash",
+      "file": "updatetemplates.js",
+      "permissions": ["OWNER"]
+    },
+    {
+      "name": "purge",
+      "description": "Delete a specified number of messages from the channel",
+      "type": "slash",
+      "file": "purge.js",
+      "permissions": ["MANAGE_MESSAGES"]
+    },
+    {
+      "name": "help",
+      "description": "Show all available commands and their descriptions",
+      "type": "slash",
+      "file": "help.js",
+      "permissions": []
+    },
+    {
+      "name": "h",
+      "description": "Show all available commands and their descriptions",
+      "type": "message",
+      "file": "helpmsg.js",
+      "permissions": []
+    },
+    {
+      "name": "modsetup",
+      "description": "Will Help You Setup The Moderation System",
+      "type": "slash",
+      "file": "modsetup.js",
+      "permissions": ["ADMINISTRATOR", "MANAGE_CHANNELS", "MANAGE_ROLES"]
+    },
+    {
+      "name": "ms",
+      "description": "Will Help You Setup The Moderation System",
+      "type": "message",
+      "file": "modsetup.js",
+      "permissions": ["ADMINISTRATOR", "MANAGE_CHANNELS", "MANAGE_ROLES"]
+    },
+    {
+      "name": "kick",
+      "description": "Kick a member from the server",
+      "type": "slash",
+      "file": "kick.js",
+      "permissions": ["KICK_MEMBERS"]
+    },
+    {
+      "name": "ban",
+      "description": "Ban a member from the server",
+      "type": "slash",
+      "file": "ban.js",
+      "permissions": ["BAN_MEMBERS"]
+    },
+    {
+      "name": "warn",
+      "description": "Warn a member for rule violations",
+      "type": "slash",
+      "file": "warn.js",
+      "permissions": ["MODERATE_MEMBERS"]
+    },
+    {
+      "name": "timeout",
+      "description": "Timeout a member for a specified duration",
+      "type": "slash",
+      "file": "timeout.js",
+      "permissions": ["MODERATE_MEMBERS"]
+    },
+    {
+      "name": "addword",
+      "description": "Add a word to the profanity blacklist",
+      "type": "slash",
+      "file": "addwords.js",
+      "permissions": ["MANAGE_MESSAGES", "MODERATE_MEMBERS"]
+    },
+    {
+      "name": "removeword",
+      "description": "Remove a word from the profanity blacklist",
+      "type": "slash",
+      "file": "removewords.js",
+      "permissions": ["MANAGE_MESSAGES", "MODERATE_MEMBERS"]
+    },
+    {
+      "name": "listwords",
+      "description": "View all words in the profanity blacklist",
+      "type": "slash",
+      "file": "listwords.js",
+      "permissions": ["MANAGE_MESSAGES", "MODERATE_MEMBERS"]
+    },
+    {
+      "name": "warnings",
+      "description": "View warning history for a user",
+      "type": "slash",
+      "file": "warnings.js",
+      "permissions": ["MODERATE_MEMBERS"]
+    },
+    {
+      "name": "clearwarnings",
+      "description": "Clear all warnings for a user",
+      "type": "slash",
+      "file": "clearwarnings.js",
+      "permissions": ["MODERATE_MEMBERS"]
+    }
+  ],
+  "ownerIds": ["710833692490203156"]
+}
