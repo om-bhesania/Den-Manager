@@ -87,15 +87,18 @@ module.exports = {
             `You have been kicked from **${interaction.guild.name}**`
           )
           .addFields(
-            { name: "Reason", value: reason, inline: false },
-            { name: "Moderator", value: interaction.user.tag, inline: true }
+            { name: "Reason", value: reason, inline: false }
           )
           .setTimestamp();
 
         await targetUser.send({ embeds: [dmEmbed] });
       } catch (error) {
-        // User has DMs disabled or blocked the bot
-        console.log(`Could not DM ${targetUser.tag} about their kick.`);
+        // Only log if it's a genuine DM failure (user blocked bot or has DMs disabled)
+        if (error.code === 50007) { // Cannot send DM to this user
+          console.log(`Could not DM ${targetUser.tag} about their kick.`);
+        } else {
+          console.log(`DM attempt for ${targetUser.tag} failed with error: ${error.message}`);
+        }
       }
 
       // Kick the user
@@ -135,7 +138,12 @@ module.exports = {
         )
         .setTimestamp();
 
-      await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+      // Check if interaction has already been replied to
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+      } else {
+        await interaction.followUp({ embeds: [errorEmbed], ephemeral: true });
+      }
     }
   },
 };

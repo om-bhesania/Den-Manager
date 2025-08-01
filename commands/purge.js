@@ -134,11 +134,11 @@ module.exports = {
               )
               .setTimestamp();
 
-                      await i.editReply({
-            embeds: [errorEmbed],
-            components: [],
-          });
-          return;
+            await i.update({
+              embeds: [errorEmbed],
+              components: [],
+            });
+            return;
           }
 
           // Delete messages
@@ -169,7 +169,7 @@ module.exports = {
             });
           }
 
-          await i.editReply({
+          await i.update({
             embeds: [successEmbed],
             components: [],
           });
@@ -184,7 +184,7 @@ module.exports = {
             )
             .setTimestamp();
 
-          await i.editReply({
+          await i.update({
             embeds: [errorEmbed],
             components: [],
           });
@@ -197,7 +197,7 @@ module.exports = {
             .setDescription("Message deletion has been cancelled.")
             .setTimestamp();
 
-          await i.editReply({
+          await i.update({
             embeds: [cancelEmbed],
             components: [],
           });

@@ -117,11 +117,19 @@ module.exports = {
       }
     } catch (error) {
       console.error("Error adding word to blacklist:", error);
-      await interaction.reply({
-        content:
-          "❌ Failed to add the word to the blacklist. Please try again.",
-        ephemeral: true,
-      });
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content:
+            "❌ Failed to add the word to the blacklist. Please try again.",
+          ephemeral: true,
+        });
+      } else {
+        await interaction.followUp({
+          content:
+            "❌ Failed to add the word to the blacklist. Please try again.",
+          ephemeral: true,
+        });
+      }
     }
   },
 };

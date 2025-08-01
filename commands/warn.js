@@ -91,30 +91,43 @@ module.exports = {
         (w) => Date.now() - w.timestamp < automodData.warnSystem.warnExpiry
       );
 
-      // Try to DM the user
-      try {
-        const dmEmbed = new EmbedBuilder()
-          .setColor("#ff9900")
-          .setTitle("⚠️ Warning Received")
-          .setDescription(
-            `You have received a warning in **${interaction.guild.name}**`
-          )
-          .addFields(
-            { name: "Reason", value: reason, inline: false },
-            { name: "Moderator", value: interaction.user.tag, inline: true },
-            {
-              name: "Total Warnings",
-              value: `${activeWarnings.length}/${automodData.warnSystem.maxWarnings}`,
-              inline: true,
-            }
-          )
-          .setFooter({ text: `Warnings expire after 7 days` })
-          .setTimestamp();
+             // Try to DM the user
+       try {
+         const dmEmbed = new EmbedBuilder()
+           .setColor("#ff9900")
+           .setTitle("⚠️ Warning Received")
+           .setDescription(
+             `You have received a warning in **${interaction.guild.name}**`
+           )
+           .addFields(
+             { name: "Reason", value: reason, inline: false },
+             {
+               name: "Total Warnings",
+               value: `${activeWarnings.length}/${automodData.warnSystem.maxWarnings}`,
+               inline: true,
+             }
+           )
+           .setFooter({ text: `Warnings expire after 7 days` })
+           .setTimestamp();
 
-        await targetMember.send({ embeds: [dmEmbed] });
-      } catch (dmError) {
-        console.log(`Could not DM ${targetUser.tag} about warning`);
-      }
+         // Add escalation warning if approaching max warnings
+         if (activeWarnings.length >= automodData.warnSystem.maxWarnings - 1) {
+           dmEmbed.addFields({
+             name: "⚠️ Warning",
+             value: `You have ${automodData.warnSystem.maxWarnings - activeWarnings.length} warning(s) remaining before being kicked from the server.`,
+             inline: false,
+           });
+         }
+
+         await targetMember.send({ embeds: [dmEmbed] });
+       } catch (dmError) {
+         // Only log if it's a genuine DM failure (user blocked bot or has DMs disabled)
+         if (dmError.code === 50007) { // Cannot send DM to this user
+           console.log(`Could not DM ${targetUser.tag} about warning`);
+         } else {
+           console.log(`DM attempt for ${targetUser.tag} failed with error: ${dmError.message}`);
+         }
+       }
 
       // Create success embed
       const successEmbed = new EmbedBuilder()
@@ -245,10 +258,19 @@ module.exports = {
       }
     } catch (error) {
       console.error("Error warning user:", error);
-      await interaction.reply({
-        content: "❌ Failed to warn the user. Please try again.",
-        ephemeral: true,
-      });
+      
+      // Check if interaction has already been replied to
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content: "❌ Failed to warn the user. Please try again.",
+          ephemeral: true,
+        });
+      } else {
+        await interaction.followUp({
+          content: "❌ Failed to warn the user. Please try again.",
+          ephemeral: true,
+        });
+      }
     }
   },
 };

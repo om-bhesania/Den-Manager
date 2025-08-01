@@ -7,7 +7,9 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "deploy": "node deploy.js && node index.js",
-    "deploy:cmds": "node deploy-commands.js"
+    "deploy:cmds": "node deploy-commands.js",
+    "check:guild": "node check-guild-commands.js",
+    "check:global": "node check-global-commands.js"
   },
   "keywords": [
     "discord",

@@ -90,14 +90,18 @@ module.exports = {
               `You have been banned from **${interaction.guild.name}**`
             )
             .addFields(
-              { name: "Reason", value: reason, inline: false },
-              { name: "Moderator", value: interaction.user.tag, inline: true }
+              { name: "Reason", value: reason, inline: false }
             )
             .setTimestamp();
 
           await targetMember.send({ embeds: [dmEmbed] });
         } catch (dmError) {
-          console.log(`Could not DM ${targetUser.tag} about ban`);
+          // Only log if it's a genuine DM failure (user blocked bot or has DMs disabled)
+          if (dmError.code === 50007) { // Cannot send DM to this user
+            console.log(`Could not DM ${targetUser.tag} about ban`);
+          } else {
+            console.log(`DM attempt for ${targetUser.tag} failed with error: ${dmError.message}`);
+          }
         }
       }
 
@@ -186,10 +190,18 @@ module.exports = {
         errorMessage += "Please check my permissions and try again.";
       }
 
-      await interaction.reply({
-        content: errorMessage,
-        ephemeral: true,
-      });
+      // Check if interaction has already been replied to
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content: errorMessage,
+          ephemeral: true,
+        });
+      } else {
+        await interaction.followUp({
+          content: errorMessage,
+          ephemeral: true,
+        });
+      }
     }
   },
 };

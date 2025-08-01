@@ -136,11 +136,19 @@ module.exports = {
       }
     } catch (error) {
       console.error("Error listing blacklisted words:", error);
-      await interaction.reply({
-        content:
-          "❌ Failed to retrieve the blacklisted words. Please try again.",
-        ephemeral: true,
-      });
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content:
+            "❌ Failed to retrieve the blacklisted words. Please try again.",
+          ephemeral: true,
+        });
+      } else {
+        await interaction.followUp({
+          content:
+            "❌ Failed to retrieve the blacklisted words. Please try again.",
+          ephemeral: true,
+        });
+      }
     }
   },
 };

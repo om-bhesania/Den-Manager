@@ -506,6 +506,10 @@ function getAutomodData(guildId) {
     const defaultData = {
       enabled: false,
       logChannel: null,
+      antiFeaturesConfigured: false,
+      profanityConfigured: false,
+      warningsConfigured: false,
+      escalationConfigured: false,
       antiSpam: {
         enabled: false,
         maxMessages: 5,
@@ -581,7 +585,7 @@ client.on("messageCreate", async (message) => {
   if (!member) return;
 
   // Skip if user has admin permissions
-  if (member.permissions.has("ADMINISTRATOR")) return;
+  if (member.permissions.has("Administrator")) return;
 
   let violationType = null;
   let shouldDelete = false;

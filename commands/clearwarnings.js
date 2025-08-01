@@ -165,30 +165,30 @@ module.exports = {
             components: [],
           });
 
-          // Try to DM the user
-          try {
-            const dmEmbed = new EmbedBuilder()
-              .setColor("#00ff88")
-              .setTitle("✅ Warnings Cleared")
-              .setDescription(
-                `Your warnings have been cleared in **${interaction.guild.name}**`
-              )
-              .addFields(
-                {
-                  name: "Cleared By",
-                  value: interaction.user.tag,
-                  inline: true,
-                },
-                { name: "Reason", value: reason, inline: false }
-              )
-              .setTimestamp();
+                     // Try to DM the user
+           try {
+             const dmEmbed = new EmbedBuilder()
+               .setColor("#00ff88")
+               .setTitle("✅ Warnings Cleared")
+               .setDescription(
+                 `Your warnings have been cleared in **${interaction.guild.name}**`
+               )
+               .addFields(
+                 { name: "Reason", value: reason, inline: false }
+               )
+               .setTimestamp();
 
-            await targetMember.send({ embeds: [dmEmbed] });
-          } catch (dmError) {
-            console.log(
-              `Could not DM ${targetUser.tag} about warning clearance`
-            );
-          }
+             await targetMember.send({ embeds: [dmEmbed] });
+           } catch (dmError) {
+             // Only log if it's a genuine DM failure (user blocked bot or has DMs disabled)
+             if (dmError.code === 50007) { // Cannot send DM to this user
+               console.log(
+                 `Could not DM ${targetUser.tag} about warning clearance`
+               );
+             } else {
+               console.log(`DM attempt for ${targetUser.tag} failed with error: ${dmError.message}`);
+             }
+           }
 
           // Log to automod channel if exists
           if (automodData.logChannel) {
@@ -259,10 +259,19 @@ module.exports = {
       });
     } catch (error) {
       console.error("Error clearing user warnings:", error);
-      await interaction.reply({
-        content: "❌ Failed to clear user warnings. Please try again.",
-        ephemeral: true,
-      });
+      
+      // Check if interaction has already been replied to
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content: "❌ Failed to clear user warnings. Please try again.",
+          ephemeral: true,
+        });
+      } else {
+        await interaction.followUp({
+          content: "❌ Failed to clear user warnings. Please try again.",
+          ephemeral: true,
+        });
+      }
     }
   },
 };

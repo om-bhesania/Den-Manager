@@ -34,19 +34,28 @@ module.exports = {
     // Determine current step
     let currentStep = "enable";
 
+    // Check if basic setup is done (enable + log channel)
     if (automodData.enabled !== undefined && automodData.logChannel !== null) {
       currentStep = "antifeatures";
     }
-    if (automodData.antiSpam.enabled !== undefined) {
+
+    // Check if anti-features are configured
+    if (automodData.antiFeaturesConfigured) {
       currentStep = "profanity";
     }
-    if (automodData.profanityFilter.enabled !== undefined) {
+
+    // Check if profanity filter is configured
+    if (automodData.profanityConfigured) {
       currentStep = "warnings";
     }
-    if (automodData.warnSystem.maxWarnings !== 3) {
+
+    // Check if warning system is configured
+    if (automodData.warningsConfigured) {
       currentStep = "escalation";
     }
-    if (automodData.warnSystem.escalation.length > 0) {
+
+    // Check if escalation is configured
+    if (automodData.escalationConfigured) {
       currentStep = "completed";
     }
 
@@ -115,25 +124,36 @@ async function handleEnableStep(interaction, client, automodData) {
     .setPlaceholder("📋 Select a moderation log channel")
     .addOptions(channelOptions);
 
+  const continueButton = new ButtonBuilder()
+    .setCustomId("modsetup_step1_continue")
+    .setLabel("Continue to Next Step")
+    .setStyle(ButtonStyle.Primary)
+    .setEmoji("➡️");
+
   const enableRow = new ActionRowBuilder().addComponents(enableSelect);
   const channelRow = new ActionRowBuilder().addComponents(channelSelect);
+  const buttonRow = new ActionRowBuilder().addComponents(continueButton);
 
   const embed = new EmbedBuilder()
     .setColor("#ff4444")
     .setTitle("🛡️ Moderation Setup - Step 1/5")
     .setDescription(
-      "**Automod Configuration**\n\nFirst, enable or disable automod, then select a channel where moderation logs will be sent."
+      "**Automod Configuration**\n\nFirst, enable or disable automod, then select a channel where **all moderation logs** will be sent.\n\n**Important:** This channel will receive logs for:\n• Warnings, kicks, bans, timeouts\n• Automod violations\n• Profanity filter actions\n• Spam detection\n\n**Click 'Continue' after making your selections.**"
     )
     .setFooter({ text: "Den Manager • Step 1 of 5" });
 
   await interaction.reply({
     embeds: [embed],
-    components: [enableRow, channelRow],
+    components: [enableRow, channelRow, buttonRow],
     ephemeral: true,
   });
 
   const collector = interaction.channel.createMessageComponentCollector({
-    filter: (i) => i.user.id === interaction.user.id,
+    filter: (i) =>
+      (i.customId === "modsetup_enable" ||
+        i.customId === "modsetup_log_channel" ||
+        i.customId === "modsetup_step1_continue") &&
+      i.user.id === interaction.user.id,
     time: 120000,
   });
 
@@ -158,13 +178,8 @@ async function handleEnableStep(interaction, client, automodData) {
             }`
           ),
         ],
-        components: [enableRow, channelRow],
+        components: [enableRow, channelRow, buttonRow],
       });
-
-      if (enableSelected && channelSelected) {
-        client.saveAutomodData(interaction.guild.id, automodData);
-        collector.stop("completed");
-      }
     }
 
     if (i.customId === "modsetup_log_channel") {
@@ -186,18 +201,28 @@ async function handleEnableStep(interaction, client, automodData) {
             }\n✅ **Log Channel:** <#${channelId}>`
           ),
         ],
-        components: [enableRow, channelRow],
+        components: [enableRow, channelRow, buttonRow],
       });
+    }
 
-      if (enableSelected && channelSelected) {
-        client.saveAutomodData(interaction.guild.id, automodData);
-        collector.stop("completed");
+    if (i.customId === "modsetup_step1_continue") {
+      if (!enableSelected || !channelSelected) {
+        await i.reply({
+          content:
+            "❌ Please complete both selections (enable/disable automod and select log channel) before continuing.",
+          ephemeral: true,
+        });
+        return;
       }
+
+      client.saveAutomodData(interaction.guild.id, automodData);
+      collector.stop("completed");
     }
   });
 
   collector.on("end", (collected, reason) => {
     if (reason === "completed") {
+      // Show completion message and let user run /modsetup again for next step
       interaction.editReply({
         embeds: [
           new EmbedBuilder()
@@ -208,7 +233,7 @@ async function handleEnableStep(interaction, client, automodData) {
                 automodData.enabled ? "Enabled" : "Disabled"
               }\n**Log Channel:** <#${
                 automodData.logChannel
-              }>\n\nRun \`/modsetup\` again to continue with anti-features configuration.`
+              }>\n\n**Run \`/modsetup\` again to continue with Step 2.**`
             )
             .setFooter({ text: "Den Manager • Step 1 Complete" }),
         ],
@@ -257,83 +282,149 @@ async function handleAntiFeaturesStep(interaction, client, automodData) {
       },
     ]);
 
+  const continueButton = new ButtonBuilder()
+    .setCustomId("modsetup_step2_continue")
+    .setLabel("Continue to Next Step")
+    .setStyle(ButtonStyle.Primary)
+    .setEmoji("➡️");
+
   const row = new ActionRowBuilder().addComponents(featuresSelect);
+  const buttonRow = new ActionRowBuilder().addComponents(continueButton);
 
   const embed = new EmbedBuilder()
     .setColor("#ff4444")
     .setTitle("🛡️ Moderation Setup - Step 2/5")
     .setDescription(
-      "**Anti-Features Configuration**\n\nSelect which anti-features you want to enable. You can select multiple or none.\n\n**Current Settings:**\n• Anti-Spam: Action = Timeout\n• Anti-Link: Action = Delete\n• Anti-Caps: Action = Warning\n• Anti-Emoji: Action = Warning"
+      "**Anti-Features Configuration**\n\nSelect which anti-features you want to enable. You can select multiple or none.\n\n**Current Settings:**\n• Anti-Spam: Action = Timeout\n• Anti-Link: Action = Delete\n• Anti-Caps: Action = Warning\n• Anti-Emoji: Action = Warning\n\n**Click 'Continue' after making your selections.**"
     )
     .setFooter({ text: "Den Manager • Step 2 of 5" });
 
   await interaction.reply({
     embeds: [embed],
-    components: [row],
+    components: [row, buttonRow],
     ephemeral: true,
   });
 
   const collector = interaction.channel.createMessageComponentCollector({
     filter: (i) =>
-      i.customId === "modsetup_antifeatures" &&
+      (i.customId === "modsetup_antifeatures" ||
+        i.customId === "modsetup_step2_continue") &&
       i.user.id === interaction.user.id,
     time: 120000,
   });
 
+  let selectedFeatures = [];
+
   collector.on("collect", async (i) => {
-    const selectedFeatures = i.values || [];
+    if (i.customId === "modsetup_antifeatures") {
+      selectedFeatures = i.values || [];
 
-    // Reset all features first
-    automodData.antiSpam.enabled = false;
-    automodData.antiLink.enabled = false;
-    automodData.antiCaps.enabled = false;
-    automodData.antiEmoji.enabled = false;
+      // Reset all features first
+      automodData.antiSpam.enabled = false;
+      automodData.antiLink.enabled = false;
+      automodData.antiCaps.enabled = false;
+      automodData.antiEmoji.enabled = false;
 
-    // Enable selected features
-    selectedFeatures.forEach((feature) => {
-      switch (feature) {
-        case "spam":
-          automodData.antiSpam.enabled = true;
-          break;
-        case "link":
-          automodData.antiLink.enabled = true;
-          break;
-        case "caps":
-          automodData.antiCaps.enabled = true;
-          break;
-        case "emoji":
-          automodData.antiEmoji.enabled = true;
-          break;
-      }
-    });
+      // Enable selected features
+      selectedFeatures.forEach((feature) => {
+        switch (feature) {
+          case "spam":
+            automodData.antiSpam.enabled = true;
+            break;
+          case "link":
+            automodData.antiLink.enabled = true;
+            break;
+          case "caps":
+            automodData.antiCaps.enabled = true;
+            break;
+          case "emoji":
+            automodData.antiEmoji.enabled = true;
+            break;
+        }
+      });
 
-    client.saveAutomodData(interaction.guild.id, automodData);
+      const enabledFeatures = [];
+      if (automodData.antiSpam.enabled) enabledFeatures.push("Anti-Spam");
+      if (automodData.antiLink.enabled) enabledFeatures.push("Anti-Link");
+      if (automodData.antiCaps.enabled) enabledFeatures.push("Anti-Caps");
+      if (automodData.antiEmoji.enabled) enabledFeatures.push("Anti-Emoji");
 
-    const enabledFeatures =
-      selectedFeatures.length > 0
-        ? selectedFeatures
-            .map((f) => `• ${f.charAt(0).toUpperCase() + f.slice(1)}`)
-            .join("\n")
-        : "• None selected";
+      await i.update({
+        embeds: [
+          new EmbedBuilder()
+            .setColor("#ff4444")
+            .setTitle("🛡️ Moderation Setup - Step 2/5")
+            .setDescription(
+              `**Anti-Features Configuration**\n\n✅ **Selected Features:**\n${
+                enabledFeatures.length > 0
+                  ? enabledFeatures.join("\n")
+                  : "None selected"
+              }\n\n**Click 'Continue' to proceed to the next step.**`
+            )
+            .setFooter({ text: "Den Manager • Step 2 of 5" }),
+        ],
+        components: [row, buttonRow],
+      });
+    }
 
-    await i.update({
-      embeds: [
-        new EmbedBuilder()
-          .setColor("#00ff88")
-          .setTitle("✅ Step 2 Complete!")
-          .setDescription(
-            `**Enabled Anti-Features:**\n${enabledFeatures}\n\nRun \`/modsetup\` again to continue with profanity filter setup.`
-          )
-          .setFooter({ text: "Den Manager • Step 2 Complete" }),
-      ],
-      components: [],
-    });
+    if (i.customId === "modsetup_step2_continue") {
+      // Mark that anti-features have been configured
+      automodData.antiFeaturesConfigured = true;
+      client.saveAutomodData(interaction.guild.id, automodData);
 
-    collector.stop();
+      const enabledFeatures = [];
+      if (automodData.antiSpam.enabled) enabledFeatures.push("Anti-Spam");
+      if (automodData.antiLink.enabled) enabledFeatures.push("Anti-Link");
+      if (automodData.antiCaps.enabled) enabledFeatures.push("Anti-Caps");
+      if (automodData.antiEmoji.enabled) enabledFeatures.push("Anti-Emoji");
+
+      await i.update({
+        embeds: [
+          new EmbedBuilder()
+            .setColor("#00ff88")
+            .setTitle("✅ Step 2 Complete!")
+            .setDescription(
+              `**Enabled Anti-Features:**\n${
+                enabledFeatures.length > 0
+                  ? enabledFeatures.join("\n")
+                  : "None selected"
+              }\n\n**Continuing to Step 3...**`
+            )
+            .setFooter({ text: "Den Manager • Step 2 Complete" }),
+        ],
+        components: [],
+      });
+
+      collector.stop("completed");
+    }
   });
 
-  collector.on("end", (collected) => {
-    if (collected.size === 0) {
+  collector.on("end", (collected, reason) => {
+    if (reason === "completed") {
+      // Show completion message and let user run /modsetup again for next step
+      const enabledFeatures = [];
+      if (automodData.antiSpam.enabled) enabledFeatures.push("Anti-Spam");
+      if (automodData.antiLink.enabled) enabledFeatures.push("Anti-Link");
+      if (automodData.antiCaps.enabled) enabledFeatures.push("Anti-Caps");
+      if (automodData.antiEmoji.enabled) enabledFeatures.push("Anti-Emoji");
+      
+      interaction.editReply({
+        embeds: [
+          new EmbedBuilder()
+            .setColor("#00ff88")
+            .setTitle("✅ Step 2 Complete!")
+            .setDescription(
+              `**Enabled Anti-Features:**\n${
+                enabledFeatures.length > 0
+                  ? enabledFeatures.join("\n")
+                  : "None selected"
+              }\n\n**Run \`/modsetup\` again to continue with Step 3.**`
+            )
+            .setFooter({ text: "Den Manager • Step 2 Complete" }),
+        ],
+        components: [],
+      });
+    } else if (collected.size === 0) {
       interaction.editReply({
         content: "⏰ Setup timed out. Please run `/modsetup` again.",
         components: [],
@@ -362,28 +453,40 @@ async function handleProfanityStep(interaction, client, automodData) {
     .setStyle(ButtonStyle.Secondary)
     .setEmoji("📝");
 
+  const continueButton = new ButtonBuilder()
+    .setCustomId("modsetup_step3_continue")
+    .setLabel("Continue to Next Step")
+    .setStyle(ButtonStyle.Primary)
+    .setEmoji("➡️");
+
   const row = new ActionRowBuilder().addComponents(
     enableButton,
     disableButton,
     addWordsButton
   );
+  const buttonRow = new ActionRowBuilder().addComponents(continueButton);
 
   const embed = new EmbedBuilder()
     .setColor("#ff4444")
     .setTitle("🛡️ Moderation Setup - Step 3/5")
     .setDescription(
-      "**Profanity Filter Configuration**\n\nEnable or disable the profanity filter, and add words to the blacklist.\n\n**Action:** Delete message + Warning"
+      "**Profanity Filter Configuration**\n\nEnable or disable the profanity filter, and add words to the blacklist.\n\n**Action:** Delete message + Warning\n\n**Click 'Continue' after making your selections.**"
     )
     .setFooter({ text: "Den Manager • Step 3 of 5" });
 
   await interaction.reply({
     embeds: [embed],
-    components: [row],
+    components: [row, buttonRow],
     ephemeral: true,
   });
 
   const collector = interaction.channel.createMessageComponentCollector({
-    filter: (i) => i.user.id === interaction.user.id,
+    filter: (i) =>
+      (i.customId === "profanity_enable" ||
+        i.customId === "profanity_disable" ||
+        i.customId === "profanity_words" ||
+        i.customId === "modsetup_step3_continue") &&
+      i.user.id === interaction.user.id,
     time: 120000,
   });
 
@@ -392,28 +495,28 @@ async function handleProfanityStep(interaction, client, automodData) {
       automodData.profanityFilter.enabled = true;
       client.saveAutomodData(interaction.guild.id, automodData);
 
-      await i.update({
-        embeds: [
-          embed.setDescription(
-            `**Profanity Filter Configuration**\n\n✅ **Status:** Enabled\n**Blacklisted Words:** ${automodData.profanityFilter.blacklistedWords.length} words\n**Action:** Delete message + Warning`
-          ),
-        ],
-        components: [row],
-      });
+             await i.update({
+         embeds: [
+           embed.setDescription(
+             `**Profanity Filter Configuration**\n\n✅ **Status:** Enabled\n**Blacklisted Words:** ${automodData.profanityFilter.blacklistedWords.length} words\n**Action:** Delete message + Warning\n\n**Click 'Continue' to proceed to the next step.**`
+           ),
+         ],
+         components: [row, buttonRow],
+       });
     }
 
     if (i.customId === "profanity_disable") {
       automodData.profanityFilter.enabled = false;
       client.saveAutomodData(interaction.guild.id, automodData);
 
-      await i.update({
-        embeds: [
-          embed.setDescription(
-            `**Profanity Filter Configuration**\n\n❌ **Status:** Disabled\n**Blacklisted Words:** ${automodData.profanityFilter.blacklistedWords.length} words\n**Action:** Delete message + Warning`
-          ),
-        ],
-        components: [row],
-      });
+             await i.update({
+         embeds: [
+           embed.setDescription(
+             `**Profanity Filter Configuration**\n\n❌ **Status:** Disabled\n**Blacklisted Words:** ${automodData.profanityFilter.blacklistedWords.length} words\n**Action:** Delete message + Warning\n\n**Click 'Continue' to proceed to the next step.**`
+           ),
+         ],
+         components: [row, buttonRow],
+       });
     }
 
     if (i.customId === "profanity_words") {
@@ -452,29 +555,52 @@ async function handleProfanityStep(interaction, client, automodData) {
           client.saveAutomodData(interaction.guild.id, automodData);
         }
 
-        await modalSubmit.update({
-          embeds: [
-            new EmbedBuilder()
-              .setColor("#00ff88")
-              .setTitle("✅ Step 3 Complete!")
-              .setDescription(
-                `**Profanity Filter:** ${
-                  automodData.profanityFilter.enabled ? "Enabled" : "Disabled"
-                }\n**Blacklisted Words:** ${
-                  automodData.profanityFilter.blacklistedWords.length
-                } words\n\nRun \`/modsetup\` again to continue with warning system setup.`
-              )
-              .setFooter({ text: "Den Manager • Step 3 Complete" }),
-          ],
-          components: [],
-        });
+                 await modalSubmit.update({
+           embeds: [
+             new EmbedBuilder()
+               .setColor("#00ff88")
+               .setTitle("✅ Words Added!")
+               .setDescription(
+                 `**Profanity Filter:** ${
+                   automodData.profanityFilter.enabled ? "Enabled" : "Disabled"
+                 }\n**Blacklisted Words:** ${
+                   automodData.profanityFilter.blacklistedWords.length
+                 } words\n\n**Click 'Continue' to proceed to the next step.**`
+               )
+               .setFooter({ text: "Den Manager • Step 3" }),
+           ],
+           components: [row, buttonRow],
+         });
+       } catch (error) {
+         console.error("Modal timeout or error:", error);
+       }
+     }
 
-        collector.stop();
-      } catch (error) {
-        console.error("Modal timeout or error:", error);
-      }
-    }
-  });
+     if (i.customId === "modsetup_step3_continue") {
+       // Mark profanity as configured
+       automodData.profanityConfigured = true;
+       client.saveAutomodData(interaction.guild.id, automodData);
+
+       await i.update({
+         embeds: [
+           new EmbedBuilder()
+             .setColor("#00ff88")
+             .setTitle("✅ Step 3 Complete!")
+             .setDescription(
+               `**Profanity Filter:** ${
+                 automodData.profanityFilter.enabled ? "Enabled" : "Disabled"
+               }\n**Blacklisted Words:** ${
+                 automodData.profanityFilter.blacklistedWords.length
+               } words\n\n**Run \`/modsetup\` again to continue with Step 4.**`
+             )
+             .setFooter({ text: "Den Manager • Step 3 Complete" }),
+         ],
+         components: [],
+       });
+
+       collector.stop("completed");
+     }
+   });
 
   collector.on("end", (collected) => {
     if (collected.size === 0) {
@@ -519,51 +645,83 @@ async function handleWarningsStep(interaction, client, automodData) {
       },
     ]);
 
+  const continueButton = new ButtonBuilder()
+    .setCustomId("modsetup_step4_continue")
+    .setLabel("Continue to Next Step")
+    .setStyle(ButtonStyle.Primary)
+    .setEmoji("➡️");
+
   const row = new ActionRowBuilder().addComponents(warningSelect);
+  const buttonRow = new ActionRowBuilder().addComponents(continueButton);
 
   const embed = new EmbedBuilder()
     .setColor("#ff4444")
     .setTitle("🛡️ Moderation Setup - Step 4/5")
     .setDescription(
-      "**Warning System Configuration**\n\nSelect how many warnings a user should receive before escalation actions are taken.\n\n**Current:** 3 warnings (default)"
+      "**Warning System Configuration**\n\nSelect how many warnings a user should receive before escalation actions are taken.\n\n**Current:** 3 warnings (default)\n\n**Click 'Continue' after making your selection.**"
     )
     .setFooter({ text: "Den Manager • Step 4 of 5" });
 
   await interaction.reply({
     embeds: [embed],
-    components: [row],
+    components: [row, buttonRow],
     ephemeral: true,
   });
 
   const collector = interaction.channel.createMessageComponentCollector({
     filter: (i) =>
-      i.customId === "modsetup_warnings" && i.user.id === interaction.user.id,
+      (i.customId === "modsetup_warnings" ||
+        i.customId === "modsetup_step4_continue") &&
+      i.user.id === interaction.user.id,
     time: 120000,
   });
 
+  let selectedWarningCount = 3; // Default
+
   collector.on("collect", async (i) => {
-    const warningCount = parseInt(i.values[0]);
-    automodData.warnSystem.maxWarnings = warningCount;
-    client.saveAutomodData(interaction.guild.id, automodData);
+    if (i.customId === "modsetup_warnings") {
+      selectedWarningCount = parseInt(i.values[0]);
 
-    await i.update({
-      embeds: [
-        new EmbedBuilder()
-          .setColor("#00ff88")
-          .setTitle("✅ Step 4 Complete!")
-          .setDescription(
-            `**Warning Threshold:** ${warningCount} warning${
-              warningCount > 1 ? "s" : ""
-            }\n\nUsers will receive escalation actions after ${warningCount} warning${
-              warningCount > 1 ? "s" : ""
-            }.\n\nRun \`/modsetup\` again to configure escalation actions.`
-          )
-          .setFooter({ text: "Den Manager • Step 4 Complete" }),
-      ],
-      components: [],
-    });
+      await i.update({
+        embeds: [
+          new EmbedBuilder()
+            .setColor("#ff4444")
+            .setTitle("🛡️ Moderation Setup - Step 4/5")
+            .setDescription(
+              `**Warning System Configuration**\n\n✅ **Selected:** ${selectedWarningCount} warning${
+                selectedWarningCount > 1 ? "s" : ""
+              }\n\n**Click 'Continue' to proceed to the next step.**`
+            )
+            .setFooter({ text: "Den Manager • Step 4 of 5" }),
+        ],
+        components: [row, buttonRow],
+      });
+    }
 
-    collector.stop();
+    if (i.customId === "modsetup_step4_continue") {
+      automodData.warnSystem.maxWarnings = selectedWarningCount;
+      automodData.warningsConfigured = true;
+      client.saveAutomodData(interaction.guild.id, automodData);
+
+      await i.update({
+        embeds: [
+          new EmbedBuilder()
+            .setColor("#00ff88")
+            .setTitle("✅ Step 4 Complete!")
+            .setDescription(
+              `**Warning Threshold:** ${selectedWarningCount} warning${
+                selectedWarningCount > 1 ? "s" : ""
+              }\n\nUsers will receive escalation actions after ${selectedWarningCount} warning${
+                selectedWarningCount > 1 ? "s" : ""
+              }.\n\n**Run \`/modsetup\` again to continue with Step 5.**`
+            )
+            .setFooter({ text: "Den Manager • Step 4 Complete" }),
+        ],
+        components: [],
+      });
+
+      collector.stop("completed");
+    }
   });
 
   collector.on("end", (collected) => {
@@ -604,60 +762,106 @@ async function handleEscalationStep(interaction, client, automodData) {
       },
     ]);
 
+  const continueButton = new ButtonBuilder()
+    .setCustomId("modsetup_continue")
+    .setLabel("Continue to Next Step")
+    .setStyle(ButtonStyle.Primary)
+    .setEmoji("➡️");
+
   const row = new ActionRowBuilder().addComponents(escalationSelect);
+  const buttonRow = new ActionRowBuilder().addComponents(continueButton);
 
   const embed = new EmbedBuilder()
     .setColor("#ff4444")
     .setTitle("🛡️ Moderation Setup - Step 5/5")
     .setDescription(
-      "**Escalation Actions Configuration**\n\nSelect the actions to take when users exceed the warning threshold. Actions will be applied in the order selected.\n\n**Example:** If you select Timeout → Kick → Ban:\n• First escalation: Timeout\n• Second escalation: Kick\n• Third escalation: Ban"
+      "**Escalation Actions Configuration**\n\nSelect the actions to take when users exceed the warning threshold. Actions will be applied in the order selected.\n\n**Example:** If you select Timeout → Kick → Ban:\n• First escalation: Timeout\n• Second escalation: Kick\n• Third escalation: Ban\n\n**Click 'Continue' after selecting your escalation actions.**"
     )
     .setFooter({ text: "Den Manager • Step 5 of 5" });
 
   await interaction.reply({
     embeds: [embed],
-    components: [row],
+    components: [row, buttonRow],
     ephemeral: true,
   });
 
   const collector = interaction.channel.createMessageComponentCollector({
     filter: (i) =>
-      i.customId === "modsetup_escalation" && i.user.id === interaction.user.id,
+      (i.customId === "modsetup_escalation" ||
+        i.customId === "modsetup_continue") &&
+      i.user.id === interaction.user.id,
     time: 120000,
   });
 
+  let selectedActions = [];
+
   collector.on("collect", async (i) => {
-    const selectedActions = i.values;
-    automodData.warnSystem.escalation = selectedActions;
-    client.saveAutomodData(interaction.guild.id, automodData);
+    if (i.customId === "modsetup_escalation") {
+      selectedActions = i.values;
 
-    const actionsList = selectedActions
-      .map(
-        (action, index) =>
-          `${index + 1}. ${action.charAt(0).toUpperCase() + action.slice(1)}`
-      )
-      .join("\n");
+      await i.update({
+        embeds: [
+          new EmbedBuilder()
+            .setColor("#ff4444")
+            .setTitle("🛡️ Moderation Setup - Step 5/5")
+            .setDescription(
+              `**Escalation Actions Configuration**\n\n✅ **Selected Actions:**\n${selectedActions
+                .map(
+                  (action, index) =>
+                    `${index + 1}. ${
+                      action.charAt(0).toUpperCase() + action.slice(1)
+                    }`
+                )
+                .join("\n")}\n\n**Click 'Continue' to complete the setup.**`
+            )
+            .setFooter({ text: "Den Manager • Step 5 of 5" }),
+        ],
+        components: [row, buttonRow],
+      });
+    }
 
-    await i.update({
-      embeds: [
-        new EmbedBuilder()
-          .setColor("#00ff88")
-          .setTitle("🎉 Moderation Setup Complete!")
-          .setDescription(
-            `**🛡️ Automod Configuration Complete!**\n\n**Status:** ${
-              automodData.enabled ? "Enabled" : "Disabled"
-            }\n**Log Channel:** <#${
-              automodData.logChannel
-            }>\n**Warning Threshold:** ${
-              automodData.warnSystem.maxWarnings
-            } warnings\n**Escalation Actions:**\n${actionsList}\n\n**Available Commands:**\n• \`/kick @user reason:<content>\`\n• \`/ban @user reason:<content>\`\n• \`/warn @user reason:<content>\`\n• \`/timeout @user duration:<time> reason:<content>\`\n• \`/addword <word>\` - Add to blacklist\n• \`/removeword <word>\` - Remove from blacklist`
-          )
-          .setFooter({ text: "Den Manager • Setup Complete!" }),
-      ],
-      components: [],
-    });
+    if (i.customId === "modsetup_continue") {
+      if (selectedActions.length === 0) {
+        await i.reply({
+          content:
+            "❌ Please select at least one escalation action before continuing.",
+          ephemeral: true,
+        });
+        return;
+      }
 
-    collector.stop();
+      automodData.warnSystem.escalation = selectedActions;
+      automodData.escalationConfigured = true;
+      client.saveAutomodData(interaction.guild.id, automodData);
+
+      const actionsList = selectedActions
+        .map(
+          (action, index) =>
+            `${index + 1}. ${action.charAt(0).toUpperCase() + action.slice(1)}`
+        )
+        .join("\n");
+
+      await i.update({
+        embeds: [
+          new EmbedBuilder()
+            .setColor("#00ff88")
+            .setTitle("🎉 Moderation Setup Complete!")
+            .setDescription(
+              `**🛡️ Automod Configuration Complete!**\n\n**Status:** ${
+                automodData.enabled ? "Enabled" : "Disabled"
+              }\n**Log Channel:** <#${
+                automodData.logChannel
+              }>\n**Warning Threshold:** ${
+                automodData.warnSystem.maxWarnings
+              } warnings\n**Escalation Actions:**\n${actionsList}\n\n**Available Commands:**\n• \`/kick @user reason:<content>\`\n• \`/ban @user reason:<content>\`\n• \`/warn @user reason:<content>\`\n• \`/timeout @user duration:<time> reason:<content>\`\n• \`/addword <word>\` - Add to blacklist\n• \`/removeword <word>\` - Remove from blacklist`
+            )
+            .setFooter({ text: "Den Manager • Setup Complete!" }),
+        ],
+        components: [],
+      });
+
+      collector.stop();
+    }
   });
 
   collector.on("end", (collected) => {
@@ -732,6 +936,10 @@ async function handleCompletedStep(interaction, client, automodData) {
     const resetData = {
       enabled: false,
       logChannel: null,
+      antiFeaturesConfigured: false,
+      profanityConfigured: false,
+      warningsConfigured: false,
+      escalationConfigured: false,
       antiSpam: {
         enabled: false,
         maxMessages: 5,

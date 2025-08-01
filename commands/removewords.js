@@ -108,11 +108,19 @@ module.exports = {
       }
     } catch (error) {
       console.error("Error removing word from blacklist:", error);
-      await interaction.reply({
-        content:
-          "❌ Failed to remove the word from the blacklist. Please try again.",
-        ephemeral: true,
-      });
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content:
+            "❌ Failed to remove the word from the blacklist. Please try again.",
+          ephemeral: true,
+        });
+      } else {
+        await interaction.followUp({
+          content:
+            "❌ Failed to remove the word from the blacklist. Please try again.",
+          ephemeral: true,
+        });
+      }
     }
   },
 };
