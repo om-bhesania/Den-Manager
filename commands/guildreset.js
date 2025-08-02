@@ -34,7 +34,7 @@ module.exports = {
         )
         .setFooter({
           text: "Den Manager • Guild Settings Reset",
-          iconURL: "./footer.gif",
+          iconURL: client.user.displayAvatarURL({ dynamic: true }),
         });
       await message.reply({ embeds: [embed] });
     } catch (error) {

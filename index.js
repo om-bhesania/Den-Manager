@@ -110,7 +110,7 @@ function createDefaultGuildData(guildId) {
     welcomeConfig: {
       message:
         "Welcome to **{serverName}**! 🎮\n\n {userMention}! We're excited to have you join our gaming community! 🎉\n\n**Join Date »»** {joinDate}\n**Account Age »»* {accountAge}\n**Members »»** {memberCount}",
-      backgroundImage: "./footer.gif",
+      backgroundImage: null,
     },
     botConfig: {
       customName: null,
@@ -157,6 +157,11 @@ function getGuildData(guildId) {
         backgroundImage: null,
         message: "Welcome to **{serverName}**! 🎮\n\n {userMention}! We're excited to have you join our gaming community! 🎉\n\n**Join Date »** {joinDate}\n**Account Age »** {accountAge}\n**Members »** {memberCount}",
       };
+    }
+    
+    // Ensure backgroundImage is null if it's a local file path
+    if (data.welcomeConfig.backgroundImage && !data.welcomeConfig.backgroundImage.startsWith('http')) {
+      data.welcomeConfig.backgroundImage = null;
     }
     
     // Ensure botConfig exists (for existing guild data that might not have it)
